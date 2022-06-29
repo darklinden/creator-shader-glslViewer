@@ -1,0 +1,31 @@
+techniques:
+- name: transparent
+  passes:
+  - vert: unlit-vs:vert
+    frag: unlit-fs:frag
+    depthStencilState:
+      depthTest: true
+      depthWrite: false
+    blendState:
+      targets:
+      - blend: true
+        blendSrc: src_alpha
+        blendDst: one_minus_src_alpha
+        blendDstAlpha: one_minus_src_alpha
+    properties: 
+      tintColor:            { value: [1, 1, 1, 1], linear: true, editor: { type: color } }
+      mainTexture:          { value: white }
+      mainTilingOffset:     { value: [1, 1, 0, 0] }
+      mainPannerX:          { value: 0 }
+      mainPannerY:          { value: 0 }
+      maskTexture:          { value: white }
+      maskTilingOffset:     { value: [1, 1, 0, 0] }
+      maskPannerX:          { value: 0 }
+      maskPannerY:          { value: 0 }
+      intensity:            { value: 1 }
+      noiseTexture:         { value: white }
+      noiseTilingOffset:    { value: [1, 1, 0, 0] }
+      noiseIntensity:       { value: 0 }
+      noisePannerX:         { value: 0 }
+      noisePannerY:         { value: 0 }
+      magicVec3:            { value: [0.300000012, 0.589999974, 0.109999999, 1] }

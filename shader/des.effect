@@ -1,0 +1,156 @@
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: unlit-vs:vert
+      frag: unlit-fs:frag
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: 
+        tintColor:            { value: [1, 1, 1, 1], linear: true, editor: { type: color } }
+        mainTexture:          { value: white }
+        mainTilingOffset:     { value: [1, 1, 0, 0] }
+        mainPannerX:          { value: 0 }
+        mainPannerY:          { value: 0 }
+        maskTexture:          { value: white }
+        maskTilingOffset:     { value: [1, 1, 0, 0] }
+        maskPannerX:          { value: 0 }
+        maskPannerY:          { value: 0 }
+        intensity:            { value: 1 }
+        noiseTexture:         { value: white }
+        noiseTilingOffset:    { value: [1, 1, 0, 0] }
+        noiseIntensity:       { value: 0 }
+        noisePannerX:         { value: 0 }
+        noisePannerY:         { value: 0 }
+        magicVec3:            { value: [0.300000012, 0.589999974, 0.109999999, 1] }
+}%
+
+CCProgram unlit-vs %{
+  precision highp float;
+  #include <cc-fog-vs>
+  #include <cc-global>
+  #include <cc-local-batch>
+  #include <input>
+
+  out vec2 v_uv;
+  out vec4 v_mainTilingOffset;
+  out vec4 v_maskTilingOffset;
+  out vec4 v_noiseTilingOffset;
+
+  uniform TexCoords {
+    vec4 mainTilingOffset; 
+    vec4 maskTilingOffset; 
+    vec4 noiseTilingOffset; 
+  };
+
+  vec4 vert() {
+      vec4 position;
+      CCVertInput(position);
+
+      mat4 matWorld;
+      CCGetWorldMatrix(matWorld);
+
+      v_mainTilingOffset = mainTilingOffset;
+      v_maskTilingOffset = maskTilingOffset;
+      v_noiseTilingOffset = noiseTilingOffset;
+
+      v_uv = a_texCoord * mainTilingOffset.xy + mainTilingOffset.zw;
+
+      CC_TRANSFER_FOG(matWorld * position);
+      return cc_matProj * (cc_matView * matWorld) * position;
+  }
+}%
+
+CCProgram unlit-fs %{
+  precision highp float;
+  #include <cc-fog-fs>
+  #include <output-standard>
+
+  in vec2 v_uv;
+
+  in vec4 v_mainTilingOffset;
+  in vec4 v_maskTilingOffset;
+  in vec4 v_noiseTilingOffset;
+
+  uniform sampler2D mainTexture;
+  uniform sampler2D noiseTexture;
+  uniform sampler2D maskTexture;
+
+  uniform Constant {
+    vec4 tintColor;
+    vec4 magicVec3;
+    float mainPannerX;
+    float mainPannerY;
+    float intensity;
+    float noiseIntensity;
+    float noisePannerX;
+    float noisePannerY;
+    float maskPannerX;
+    float maskPannerY;
+  };
+
+  vec4 frag() {
+
+    vec2 maskPan = cc_time.xx * vec2(maskPannerX, maskPannerY) + v_uv;
+    maskPan = maskPan.xy * v_maskTilingOffset.xy + v_maskTilingOffset.zw;
+    vec4 mask = texture(maskTexture, maskPan);
+
+    vec2 noisePan = cc_time.xx * vec2(noisePannerX, noisePannerY) + v_uv;
+    noisePan = noisePan.xy * v_noiseTilingOffset.xy + v_noiseTilingOffset.zw;
+    vec4 noise = texture(noiseTexture, noisePan);
+
+    float u_xlat6 = v_uv.y * noiseIntensity;
+    float mainX = dot(noise.rgb, magicVec3.xyz);
+    vec2 mainPan = vec2(mainX, mainX) * vec2(u_xlat6, u_xlat6) + v_uv;
+    mainPan += cc_time.xx * vec2(mainPannerX, mainPannerY);
+    mainPan = mainPan.xy * v_mainTilingOffset.xy + v_mainTilingOffset.zw;
+
+    vec4 img = texture(mainTexture, mainPan);
+
+    float u_xlat2x = dot(mask.rgb, magicVec3.xyz);
+    u_xlat2x = mask.a * u_xlat2x;
+    float u_xlat4x = img.a * tintColor.a;
+    u_xlat4x *= u_xlat2x;
+
+    float u_xlat0_d = tintColor.a + tintColor.a;
+    u_xlat0_d -= 1.0;
+    u_xlat0_d = clamp(u_xlat0_d, 0.0, 1.0);
+    u_xlat0_d = img.a * u_xlat0_d;
+
+    u_xlat0_d = ((u_xlat0_d * u_xlat2x) + (-u_xlat4x));
+    u_xlat0_d = u_xlat0_d + u_xlat4x;
+
+    img.rgb *= tintColor.rgb;
+    img.rgb *= vec3(intensity, intensity, intensity);
+    img.rgb *= vec3(u_xlat0_d, u_xlat0_d, u_xlat0_d);
+    img.a *= noise.a * mask.r;
+  
+
+    // float mainX = mainPannerX == 0.0 ? 0.0 : mod(cc_time.x, mainPannerX) / mainPannerX;
+    // float mainY = mainPannerY == 0.0 ? 0.0 : mod(cc_time.x, mainPannerY) / mainPannerY;
+    // float noiseX = noisePannerX == 0.0 ? 0.0 : mod(cc_time.x, noisePannerX) / noisePannerX;
+    // float noiseY = noisePannerY == 0.0 ? 0.0 : mod(cc_time.x, noisePannerY) / noisePannerY;
+    // float maskX = maskPannerX == 0.0 ? 0.0 : mod(cc_time.x, maskPannerX) / maskPannerX;
+    // float maskY = maskPannerY == 0.0 ? 0.0 : mod(cc_time.x, maskPannerY) / maskPannerY;
+
+    // vec4 image = texture(mainTexture, v_uv + vec2(mainX, mainY));
+    // vec4 noise = texture(noiseTexture, v_uv + vec2(noiseX, noiseY));
+    // vec4 mask = texture(maskTexture, v_uv + vec2(maskX, maskY));
+
+    // image.rgb *= image.rgb * noise.rgb * tintColor.rgb * vec3(intensity, intensity, intensity);
+
+    // image.a *= noise.a * mask.r;
+
+    // return image;
+
+    CC_APPLY_FOG(img);
+    return CCFragOutput(img);
+  }
+}%
