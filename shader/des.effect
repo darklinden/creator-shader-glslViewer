@@ -131,24 +131,6 @@ CCProgram unlit-fs %{
     img.rgb *= vec3(intensity, intensity, intensity);
     img.rgb *= vec3(u_xlat0_d, u_xlat0_d, u_xlat0_d);
     img.a *= noise.a * mask.r;
-  
-
-    // float mainX = mainPannerX == 0.0 ? 0.0 : mod(cc_time.x, mainPannerX) / mainPannerX;
-    // float mainY = mainPannerY == 0.0 ? 0.0 : mod(cc_time.x, mainPannerY) / mainPannerY;
-    // float noiseX = noisePannerX == 0.0 ? 0.0 : mod(cc_time.x, noisePannerX) / noisePannerX;
-    // float noiseY = noisePannerY == 0.0 ? 0.0 : mod(cc_time.x, noisePannerY) / noisePannerY;
-    // float maskX = maskPannerX == 0.0 ? 0.0 : mod(cc_time.x, maskPannerX) / maskPannerX;
-    // float maskY = maskPannerY == 0.0 ? 0.0 : mod(cc_time.x, maskPannerY) / maskPannerY;
-
-    // vec4 image = texture(mainTexture, v_uv + vec2(mainX, mainY));
-    // vec4 noise = texture(noiseTexture, v_uv + vec2(noiseX, noiseY));
-    // vec4 mask = texture(maskTexture, v_uv + vec2(maskX, maskY));
-
-    // image.rgb *= image.rgb * noise.rgb * tintColor.rgb * vec3(intensity, intensity, intensity);
-
-    // image.a *= noise.a * mask.r;
-
-    // return image;
 
     CC_APPLY_FOG(img);
     return CCFragOutput(img);

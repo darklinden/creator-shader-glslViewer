@@ -2,13 +2,12 @@ uniform mat4 u_viewMatrix;
 uniform mat4 u_projectionMatrix;
 
 attribute vec4 a_position;
+attribute vec2 a_texcoord;
 
 varying vec2 v_uv;
 
-#define decimation(value, presicion) (floor(value * presicion)/presicion)
-
 vec4 vert() {
-    v_uv = a_position.xy;
+    v_uv = a_texcoord;
     return u_projectionMatrix * u_viewMatrix * a_position;
 }
 
